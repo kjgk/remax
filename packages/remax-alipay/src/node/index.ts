@@ -80,6 +80,17 @@ const plugin: RemaxNodePluginConstructor = () => {
     },
     shouldHostComponentRegister: ({ componentName }) =>
       componentName !== 'swiper-item' && componentName !== 'picker-view-column',
+    processProps: ({ node, props, additional }) => {
+      const isSpread =
+        node &&
+        node.openingElement.attributes.find(
+          (a: any) => a.type === 'JSXSpreadAttribute'
+        );
+
+      const nextProps = isSpread || additional ? props : [];
+
+      return nextProps;
+    },
   };
 };
 
