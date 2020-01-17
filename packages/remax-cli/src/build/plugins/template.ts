@@ -12,48 +12,27 @@ import getEntries from '../../getEntries';
 import { Context } from '../../types';
 import winPath from '../../winPath';
 import { getNativeComponents } from './nativeComponents/babelPlugin';
+import JSXTemplates from './JSXElement/templates';
 
 function pageUID(pagePath: string) {
   return pagePath.replace('/', '_');
 }
 
-async function createTemplate(
+async function createElementTemplates(
   pageFile: string,
   options: RemaxOptions,
   meta: Meta
 ) {
+  const templates = JSXTemplates();
   const fileName = `${path.dirname(pageFile)}/${path.basename(
     pageFile,
     path.extname(pageFile)
   )}${meta.template.extension}`;
 
-  const renderOptions: { [props: string]: any } = {
-    baseTemplate: winPath(
-      path.relative(path.dirname(pageFile), `base${meta.template.extension}`)
-    ),
-  };
-
-  if (meta.jsHelper) {
-    renderOptions.jsHelper = `./${pageUID(pageFile)}_helper${
-      meta.jsHelper.extension
-    }`;
-  }
-
-  const components = sortBy(
-    getComponents().concat(Object.values(getNativeComponents())),
-    'id'
-  );
-
-  const hostComponents = API.getHostComponents();
-
   let code: string = await ejs.renderFile(
     meta.ejs.page,
     {
-      ...renderOptions,
-      components,
-      viewComponent: {
-        props: [...new Set(hostComponents.get('view')!.props)].sort(),
-      },
+      templates,
     },
     {
       rmWhitespace: options.compressTemplate,
@@ -72,6 +51,62 @@ async function createTemplate(
     source: code,
   };
 }
+
+// async function createTemplate(
+//   pageFile: string,
+//   options: RemaxOptions,
+//   meta: Meta
+// ) {
+//   const fileName = `${path.dirname(pageFile)}/${path.basename(
+//     pageFile,
+//     path.extname(pageFile)
+//   )}${meta.template.extension}`;
+
+//   const renderOptions: { [props: string]: any } = {
+//     baseTemplate: winPath(
+//       path.relative(path.dirname(pageFile), `base${meta.template.extension}`)
+//     ),
+//   };
+
+//   if (meta.jsHelper) {
+//     renderOptions.jsHelper = `./${pageUID(pageFile)}_helper${
+//       meta.jsHelper.extension
+//     }`;
+//   }
+
+//   const components = sortBy(
+//     getComponents().concat(Object.values(getNativeComponents())),
+//     'id'
+//   );
+
+//   const hostComponents = API.getHostComponents();
+
+//   let code: string = await ejs.renderFile(
+//     meta.ejs.page,
+//     {
+//       ...renderOptions,
+//       components,
+//       viewComponent: {
+//         props: [...new Set(hostComponents.get('view')!.props)].sort(),
+//       },
+//     },
+//     {
+//       rmWhitespace: options.compressTemplate,
+//     }
+//   );
+
+//   // TODO 用 uglify 替代 compressTemplate
+//   /* istanbul ignore next */
+//   if (options.compressTemplate) {
+//     code = code.replace(/^\s*$(?:\r\n?|\n)/gm, '').replace(/\r\n|\n/g, ' ');
+//   }
+
+//   return {
+//     type: 'asset' as const,
+//     fileName,
+//     source: code,
+//   };
+// }
 
 async function createHelperFile(pageFile: string, meta: Meta) {
   if (!meta.jsHelper || !meta.ejs.jsHelper) {
@@ -260,6 +295,9 @@ export default function template(
   return {
     name: 'template',
     async generateBundle(_, bundle, isWrite) {
+      JSXTemplates().forEach(jsxTemplate => {
+        console.log(jsxTemplate.elementID, '\n', jsxTemplate.content);
+      });
       const meta = API.getMeta();
       const templateAssets = [];
       // app.json
@@ -290,7 +328,12 @@ export default function template(
             const filePath = Object.keys(chunk.modules)[0];
             const page = pages.find(p => p === filePath);
             if (page) {
-              const template = await createTemplate(file, options, meta);
+              // const template = await createTemplate(file, options, meta);
+              const template = await createElementTemplates(
+                file,
+                options,
+                meta
+              );
               templateAssets.push(template);
 
               const config = createPageManifest(options, file, page, context);

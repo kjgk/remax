@@ -37,12 +37,24 @@ export default class Container {
   }
 
   normalizeRawNode = (item: RawNode): RawNode => {
+    const normalizeChildren = (item: RawNode) => {
+      if (!item.children) {
+        return item.children;
+      }
+
+      return item.children.map(this.normalizeRawNode);
+
+      // const children = item.children as RawNodeChildren;
+      // return Object.keys(children).reduce((acc, eid) => {
+      //   acc[eid] = children[eid].map(this.normalizeRawNode);
+      //   return acc;
+      // }, {} as any);
+    };
+
     return {
       ...item,
       props: propsAlias(item.props, item.type),
-      children: item.children
-        ? item.children.map(this.normalizeRawNode)
-        : item.children,
+      children: normalizeChildren(item),
     };
   };
 
@@ -77,6 +89,14 @@ export default class Container {
 
     const startTime = new Date().getTime();
 
+    // this.context.setData({
+    //   root: this.normalizeRawNode(this.root.toJSON()),
+    // });
+
+    // this.updateQueue = [];
+
+    // return;
+
     if (typeof this.context.$spliceData === 'function') {
       let $batchedUpdates = (callback: Function) => {
         callback();
@@ -100,6 +120,13 @@ export default class Container {
               }
             };
           }
+          // this.context.setData({
+          //   [update.path.join('.') +
+          //   '.children.' +
+          //   update.items[0].props[ELEMENT_ID_ATTRIBUTE_NAME]]: [
+          //     update.items[0],
+          //   ],
+          // });
           this.context.$spliceData(
             {
               [update.path.join('.')]: [
@@ -110,6 +137,16 @@ export default class Container {
             },
             callback
           );
+          // this.context.$spliceData(
+          //   {
+          //     [update.path.join('.')]: [
+          //       update.start,
+          //       update.deleteCount,
+          //       update.items[0].props[ELEMENT_ID_ATTRIBUTE_NAME],
+          //     ],
+          //   },
+          //   callback
+          // );
         });
       });
 

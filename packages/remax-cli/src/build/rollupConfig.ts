@@ -30,6 +30,7 @@ import nativeComponents from './plugins/nativeComponents';
 import components from './plugins/components';
 import template from './plugins/template';
 import alias from './plugins/alias';
+import * as JSXElementPlugin from './plugins/JSXElement';
 import extensions from '../extensions';
 import { without } from 'lodash';
 import jsx from 'acorn-jsx';
@@ -113,6 +114,16 @@ export default function rollupConfig(
     }),
     stub({
       modules: stubModules,
+    }),
+    babel({
+      include: entries.pages,
+      extensions: without(extensions, '.json'),
+      usePlugins: [
+        JSXElementPlugin.decorate,
+        JSXElementPlugin.mark,
+        JSXElementPlugin.visit,
+      ],
+      reactPreset: false,
     }),
     babel({
       include: entries.pages,
